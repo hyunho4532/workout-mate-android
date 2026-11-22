@@ -11,6 +11,7 @@ enum class BodyPart(val label: String) {
     Arms("팔"),
     Core("코어"),
     Cardio("유산소"),
+    Other("기타"),     // 직접 입력한 종목
 }
 
 /** 한 세트: 무게(kg) × 횟수. 맨몸 운동은 무게 0 */

@@ -5,8 +5,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -17,7 +15,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
@@ -40,6 +37,13 @@ import androidx.compose.ui.unit.dp
 import com.workoutmate.app.data.BodyPart
 import com.workoutmate.app.data.Exercises
 import com.workoutmate.app.ui.theme.AppTheme
+import androidx.compose.foundation.border
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.SolidColor
 
 /** 40.0 → "40", 42.5 → "42.5" */
 fun Float.fmt(): String = if (this % 1f == 0f) toInt().toString() else "%.1f".format(this)
@@ -120,67 +124,102 @@ fun NumberDialog(
     )
 }
 
-/** 운동 고르기 시트: 부위로 거르고, 목록에서 고르거나 직접 입력 */
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+/**
+ * 운동 고르기 시트: 맨 위 검색바 + 아래 목록 하나.
+ * 부위 이름(예: "가슴")으로 검색해도 되고, 목록에 없으면 입력한 이름 그대로 추가할 수 있어요.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExercisePickerSheet(onPick: (String, BodyPart) -> Unit, onDismiss: () -> Unit) {
     val c = AppTheme.colors
-    var part by remember { mutableStateOf<BodyPart?>(null) }
-    var custom by remember { mutableStateOf("") }
-    val list = Exercises.all.filter { part == null || it.part == part }
+    var query by remember { mutableStateOf("") }
+    val focus = remember { FocusRequester() }
+    val q = query.replace(" ", "")
+    val results = if (q.isEmpty()) Exercises.all
+    else Exercises.all.filter { it.name.replace(" ", "").contains(q, ignoreCase = true) || it.part.label.contains(q) }
+    val exact = Exercises.all.any { it.name.replace(" ", "") == q }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = c.background,
         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
     ) {
-        Column(Modifier.padding(horizontal = 20.dp).padding(bottom = 24.dp)) {
-            Text("운동 추가", style = MaterialTheme.typography.titleLarge, color = c.textPrimary)
-            Spacer(Modifier.height(12.dp))
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                SelectChip("전체", selected = part == null) { part = null }
-                BodyPart.entries.forEach { p -> SelectChip(p.label, selected = part == p) { part = p } }
-            }
-            Spacer(Modifier.height(12.dp))
-            LazyColumn(Modifier.heightIn(max = 360.dp)) {
-                items(list, key = { it.name }) { def ->
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .clickable { onPick(def.name, def.part) }
-                            .padding(horizontal = 8.dp, vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        val badge = AppTheme.badgeFor(def.part.label)
-                        Box(
-                            Modifier.size(8.dp).clip(CircleShape).background(badge.strong),
-                        )
-                        Spacer(Modifier.width(12.dp))
-                        Text(def.name, style = MaterialTheme.typography.bodyLarge, color = c.textPrimary, modifier = Modifier.weight(1f))
-                        Text(def.part.label, style = MaterialTheme.typography.labelMedium, color = c.textTertiary)
+        Column(Modifier.padding(horizontal = 16.dp)) {
+            // 검색바
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(c.surface)
+                    .border(1.dp, c.divider, RoundedCornerShape(14.dp))
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                LineIcon(LineIconKind.Search, c.textTertiary, Modifier.size(18.dp))
+                Spacer(Modifier.width(10.dp))
+                Box(Modifier.weight(1f)) {
+                    if (query.isEmpty()) {
+                        Text("운동 이름이나 부위 검색", style = MaterialTheme.typography.bodyLarge, color = c.textDisabled)
                     }
+                    BasicTextField(
+                        value = query,
+                        onValueChange = { query = it },
+                        singleLine = true,
+                        textStyle = MaterialTheme.typography.bodyLarge.copy(color = c.textPrimary),
+                        cursorBrush = SolidColor(c.primary),
+                        modifier = Modifier.fillMaxWidth().focusRequester(focus),
+                    )
+                }
+                if (query.isNotEmpty()) {
+                    Text(
+                        "지우기",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = c.textTertiary,
+                        modifier = Modifier.clip(RoundedCornerShape(6.dp)).clickable { query = "" }.padding(4.dp),
+                    )
                 }
             }
-            Spacer(Modifier.height(12.dp))
-            Text("목록에 없으면 직접 입력", style = MaterialTheme.typography.labelMedium, color = c.textTertiary)
-            Spacer(Modifier.height(6.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                AppTextField(
-                    value = custom,
-                    onValueChange = { custom = it },
-                    placeholder = "예) 케이블 크로스오버",
-                    modifier = Modifier.weight(1f),
-                )
-                Spacer(Modifier.width(8.dp))
-                AppButton(
-                    "추가",
-                    onClick = { onPick(custom.trim(), part ?: BodyPart.Core) },
-                    enabled = custom.isNotBlank(),
-                    height = 48.dp,
-                    modifier = Modifier.width(76.dp),
-                )
+            Spacer(Modifier.height(8.dp))
+
+            LazyColumn(Modifier.fillMaxWidth().heightIn(min = 200.dp, max = 460.dp)) {
+                // 목록에 없는 이름이면 그대로 추가
+                if (query.isNotBlank() && !exact) {
+                    item(key = "custom") {
+                        PickerRow(
+                            title = "'${query.trim()}' 추가",
+                            subtitle = "직접 입력",
+                            highlight = true,
+                        ) { onPick(query.trim(), BodyPart.Other) }
+                    }
+                }
+                items(results, key = { it.name }) { def ->
+                    PickerRow(def.name, def.part.label) { onPick(def.name, def.part) }
+                }
             }
+            Spacer(Modifier.height(16.dp))
         }
+    }
+    LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
+}
+
+@Composable
+private fun PickerRow(title: String, subtitle: String, highlight: Boolean = false, onClick: () -> Unit) {
+    val c = AppTheme.colors
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 6.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            title,
+            style = MaterialTheme.typography.bodyLarge,
+            color = if (highlight) c.primary else c.textPrimary,
+            modifier = Modifier.weight(1f),
+        )
+        Text(subtitle, style = MaterialTheme.typography.labelMedium, color = c.textTertiary)
     }
 }

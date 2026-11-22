@@ -525,7 +525,7 @@ fun PlayfulProgressRing(
     }
 }
 
-enum class LineIconKind { Camera, Image, Document, Sun, Moon, Auto, Retry, Plus, Edit, Trash, Minus, Check, Timer, Spark, Play }
+enum class LineIconKind { Camera, Image, Document, Sun, Moon, Auto, Retry, Plus, Edit, Trash, Minus, Check, Timer, Spark, Play, Search }
 
 /** 이모지 대신 쓰는 얇은 선 아이콘 */
 @Composable
@@ -600,6 +600,10 @@ fun LineIcon(kind: LineIconKind, color: Color, modifier: Modifier = Modifier.siz
                 }, color, style = line)
                 drawLine(color, Offset(w * 0.43f, h * 0.42f), Offset(w * 0.43f, h * 0.72f), sw, StrokeCap.Round)
                 drawLine(color, Offset(w * 0.57f, h * 0.42f), Offset(w * 0.57f, h * 0.72f), sw, StrokeCap.Round)
+            }
+            LineIconKind.Search -> {
+                drawCircle(color, w * 0.28f, Offset(w * 0.44f, h * 0.44f), style = line)
+                drawLine(color, Offset(w * 0.65f, h * 0.65f), Offset(w * 0.86f, h * 0.86f), sw * 1.2f, StrokeCap.Round)
             }
             LineIconKind.Minus -> {
                 drawLine(color, Offset(w * 0.18f, h / 2), Offset(w * 0.82f, h / 2), sw * 1.2f, StrokeCap.Round)
