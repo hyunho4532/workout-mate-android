@@ -32,13 +32,6 @@ object WorkoutRepository {
     suspend fun load(context: Context) {
         val d = AppDatabase.get(context).workoutDao().also { dao = it }
 
-        // 처음 설치했을 때만 예시 루틴 2개
-        val prefs = context.getSharedPreferences("db", Context.MODE_PRIVATE)
-        if (!prefs.getBoolean("seeded", false)) {
-            SampleRoutines.all.forEach { d.upsertRoutine(it.copy(id = newId()).toEntity()) }
-            prefs.edit().putBoolean("seeded", true).apply()
-        }
-
         logs.clear()
         logs.addAll(d.logs().map { it.toLog() })
         routines.clear()
@@ -150,28 +143,4 @@ object WorkoutRepository {
 
     private fun RoutineEntity.toRoutine() =
         Routine(id, name, day, json.decodeFromString<List<RoutineItem>>(itemsJson))
-}
-
-/** 처음 설치했을 때 보여 줄 예시 루틴 */
-object SampleRoutines {
-    val all = listOf(
-        Routine(
-            id = 0, name = "상체 A", day = 1,
-            items = listOf(
-                RoutineItem("벤치프레스", BodyPart.Chest, 4, 10, 40f),
-                RoutineItem("바벨 로우", BodyPart.Back, 4, 10, 40f),
-                RoutineItem("오버헤드 프레스", BodyPart.Shoulders, 3, 10, 25f),
-                RoutineItem("바벨 컬", BodyPart.Arms, 3, 12, 20f),
-            ),
-        ),
-        Routine(
-            id = 0, name = "하체 A", day = 3,
-            items = listOf(
-                RoutineItem("스쿼트", BodyPart.Legs, 4, 10, 50f),
-                RoutineItem("레그 프레스", BodyPart.Legs, 3, 12, 80f),
-                RoutineItem("레그 컬", BodyPart.Legs, 3, 12, 25f),
-                RoutineItem("플랭크(초)", BodyPart.Core, 3, 60, 0f),
-            ),
-        ),
-    )
 }
