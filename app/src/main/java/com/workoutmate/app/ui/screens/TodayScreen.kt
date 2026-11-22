@@ -22,6 +22,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -131,7 +133,7 @@ fun TodayScreen(modifier: Modifier = Modifier) {
                             Text("아직 기록이 없어요", style = MaterialTheme.typography.titleMedium, color = c.textPrimary)
                             Spacer(Modifier.height(4.dp))
                             Text(
-                                "아래 버튼으로 운동을 추가하거나, 루틴 탭에서 루틴을 시작하세요.",
+                                "오른쪽 아래 + 버튼으로 운동을 추가하거나, 루틴 탭에서 루틴을 시작하세요.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = c.textSecondary,
                             )
@@ -177,19 +179,16 @@ fun TodayScreen(modifier: Modifier = Modifier) {
             Modifier.align(Alignment.BottomCenter).padding(16.dp),
             horizontalAlignment = Alignment.End,
         ) {
-            Chunky(
-                face = c.textPrimary,
-                lip = c.textPrimary.copy(alpha = 0.75f),
-                shape = RoundedCornerShape(50),
-                depth = 3.dp,
+            // 운동 추가 플로팅 버튼
+            FloatingActionButton(
                 onClick = { picking = true },
-                modifier = Modifier.height(53.dp),
+                shape = CircleShape,
+                containerColor = c.primary,
+                contentColor = c.onPrimary,
+                elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp, pressedElevation = 2.dp),
+                modifier = Modifier.size(60.dp),
             ) {
-                Row(Modifier.padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
-                    LineIcon(LineIconKind.Plus, c.surface, Modifier.size(18.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text("운동 추가", style = MaterialTheme.typography.titleSmall, color = c.surface)
-                }
+                LineIcon(LineIconKind.Plus, c.onPrimary, Modifier.size(24.dp))
             }
             Spacer(Modifier.height(10.dp))
             RestTimerBar()
