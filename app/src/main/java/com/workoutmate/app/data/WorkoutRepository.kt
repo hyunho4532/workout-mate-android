@@ -50,14 +50,22 @@ object WorkoutRepository {
     fun logsOn(date: String): List<WorkoutLog> = logs.filter { it.date == date }.sortedBy { it.order }
 
     /** 종목 추가: 지난번에 했던 무게·횟수를 그대로 가져오고, 처음이면 기본값 3세트 */
-    fun addExercise(date: String, name: String, part: BodyPart) {
+    fun suggestedSets(name: String, date: String): List<SetLog> {
         val last = logs.lastOrNull { it.name == name && it.date != date }
-        val sets = last?.sets?.map { it.copy(done = false) }
+        return last?.sets?.map { it.copy(done = false) }
             ?: Exercises.find(name)?.let { def -> List(3) { SetLog(def.defaultWeight, def.defaultReps) } }
             ?: List(3) { SetLog(0f, 10) }
+    }
+
+    /** 지난번 기록이 있으면 그 무게·횟수를 이어서 씀 */
+    fun lastTime(name: String, date: String): WorkoutLog? = logs.lastOrNull { it.name == name && it.date != date }
+
+    fun addExercise(date: String, name: String, part: BodyPart, sets: List<SetLog> = suggestedSets(name, date)) {
         val order = (logsOn(date).maxOfOrNull { it.order } ?: -1) + 1
         save(WorkoutLog(newId(), date, name, part, order, sets))
     }
+
+    fun findLog(id: Long): WorkoutLog? = logs.firstOrNull { it.id == id }
 
     fun updateSets(id: Long, sets: List<SetLog>) {
         val log = logs.firstOrNull { it.id == id } ?: return

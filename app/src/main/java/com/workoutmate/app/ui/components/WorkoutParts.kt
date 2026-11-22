@@ -125,12 +125,16 @@ fun NumberDialog(
 }
 
 /**
- * 운동 고르기 시트: 맨 위 검색바 + 아래 목록 하나.
- * 부위 이름(예: "가슴")으로 검색해도 되고, 목록에 없으면 입력한 이름 그대로 추가할 수 있어요.
+ * 운동 검색: 맨 위 검색바 + 아래 목록 하나.
+ * 부위 이름(예: "가슴")으로 검색해도 되고, 목록에 없으면 입력한 이름 그대로 고를 수 있어요.
+ * 운동 추가 페이지와 루틴 편집의 시트에서 같이 씁니다.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ExercisePickerSheet(onPick: (String, BodyPart) -> Unit, onDismiss: () -> Unit) {
+fun ExerciseSearch(
+    onPick: (String, BodyPart) -> Unit,
+    modifier: Modifier = Modifier,
+    listModifier: Modifier = Modifier,
+) {
     val c = AppTheme.colors
     var query by remember { mutableStateOf("") }
     val focus = remember { FocusRequester() }
@@ -139,68 +143,72 @@ fun ExercisePickerSheet(onPick: (String, BodyPart) -> Unit, onDismiss: () -> Uni
     else Exercises.all.filter { it.name.replace(" ", "").contains(q, ignoreCase = true) || it.part.label.contains(q) }
     val exact = Exercises.all.any { it.name.replace(" ", "") == q }
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        containerColor = c.background,
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-    ) {
-        Column(Modifier.padding(horizontal = 16.dp)) {
-            // 검색바
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(c.surface)
-                    .border(1.dp, c.divider, RoundedCornerShape(14.dp))
-                    .padding(horizontal = 14.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                LineIcon(LineIconKind.Search, c.textTertiary, Modifier.size(18.dp))
-                Spacer(Modifier.width(10.dp))
-                Box(Modifier.weight(1f)) {
-                    if (query.isEmpty()) {
-                        Text("운동 이름이나 부위 검색", style = MaterialTheme.typography.bodyLarge, color = c.textDisabled)
-                    }
-                    BasicTextField(
-                        value = query,
-                        onValueChange = { query = it },
-                        singleLine = true,
-                        textStyle = MaterialTheme.typography.bodyLarge.copy(color = c.textPrimary),
-                        cursorBrush = SolidColor(c.primary),
-                        modifier = Modifier.fillMaxWidth().focusRequester(focus),
-                    )
+    Column(modifier) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(14.dp))
+                .background(c.surface)
+                .border(1.dp, c.divider, RoundedCornerShape(14.dp))
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            LineIcon(LineIconKind.Search, c.textTertiary, Modifier.size(18.dp))
+            Spacer(Modifier.width(10.dp))
+            Box(Modifier.weight(1f)) {
+                if (query.isEmpty()) {
+                    Text("운동 이름이나 부위 검색", style = MaterialTheme.typography.bodyLarge, color = c.textDisabled)
                 }
-                if (query.isNotEmpty()) {
-                    Text(
-                        "지우기",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = c.textTertiary,
-                        modifier = Modifier.clip(RoundedCornerShape(6.dp)).clickable { query = "" }.padding(4.dp),
-                    )
-                }
+                BasicTextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    singleLine = true,
+                    textStyle = MaterialTheme.typography.bodyLarge.copy(color = c.textPrimary),
+                    cursorBrush = SolidColor(c.primary),
+                    modifier = Modifier.fillMaxWidth().focusRequester(focus),
+                )
             }
-            Spacer(Modifier.height(8.dp))
+            if (query.isNotEmpty()) {
+                Text(
+                    "지우기",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = c.textTertiary,
+                    modifier = Modifier.clip(RoundedCornerShape(6.dp)).clickable { query = "" }.padding(4.dp),
+                )
+            }
+        }
+        Spacer(Modifier.height(8.dp))
 
-            LazyColumn(Modifier.fillMaxWidth().heightIn(min = 200.dp, max = 460.dp)) {
-                // 목록에 없는 이름이면 그대로 추가
-                if (query.isNotBlank() && !exact) {
-                    item(key = "custom") {
-                        PickerRow(
-                            title = "'${query.trim()}' 추가",
-                            subtitle = "직접 입력",
-                            highlight = true,
-                        ) { onPick(query.trim(), BodyPart.Other) }
-                    }
-                }
-                items(results, key = { it.name }) { def ->
-                    PickerRow(def.name, def.part.label) { onPick(def.name, def.part) }
+        LazyColumn(listModifier.fillMaxWidth()) {
+            if (query.isNotBlank() && !exact) {
+                item(key = "custom") {
+                    PickerRow("'${query.trim()}' 추가", "직접 입력", highlight = true) { onPick(query.trim(), BodyPart.Other) }
                 }
             }
-            Spacer(Modifier.height(16.dp))
+            items(results, key = { it.name }) { def ->
+                PickerRow(def.name, def.part.label) { onPick(def.name, def.part) }
+            }
         }
     }
     LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
+}
+
+/** 루틴 편집에서 쓰는 시트 버전 */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ExercisePickerSheet(onPick: (String, BodyPart) -> Unit, onDismiss: () -> Unit) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor = AppTheme.colors.background,
+        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+    ) {
+        ExerciseSearch(
+            onPick = onPick,
+            modifier = Modifier.padding(horizontal = 16.dp).padding(bottom = 16.dp),
+            listModifier = Modifier.heightIn(min = 200.dp, max = 460.dp),
+        )
+    }
 }
 
 @Composable
