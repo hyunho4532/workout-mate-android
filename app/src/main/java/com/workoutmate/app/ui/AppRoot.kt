@@ -30,7 +30,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.workoutmate.app.ui.components.NavIcon
 import com.workoutmate.app.ui.components.NavIconKind
+import com.workoutmate.app.ui.screens.AddExerciseScreen
 import com.workoutmate.app.ui.screens.AiRoutineScreen
+import com.workoutmate.app.ui.screens.ExerciseDetailScreen
 import com.workoutmate.app.ui.screens.ProfileScreen
 import com.workoutmate.app.ui.screens.RoutineEditScreen
 import com.workoutmate.app.ui.screens.RoutinesScreen
@@ -46,6 +48,8 @@ sealed interface Screen {
     data object Profile : Screen
     data class RoutineEdit(val id: Long?) : Screen
     data object AiRoutine : Screen
+    data object AddExercise : Screen
+    data class ExerciseDetail(val logId: Long) : Screen
 }
 
 private val TABS = listOf(Screen.Today, Screen.Routines, Screen.Stats, Screen.Profile)
@@ -57,6 +61,7 @@ fun AppRoot() {
     fun goBack() {
         screen = when (screen) {
             is Screen.RoutineEdit, Screen.AiRoutine -> Screen.Routines
+            Screen.AddExercise, is Screen.ExerciseDetail -> Screen.Today
             else -> Screen.Today
         }
     }
@@ -68,7 +73,11 @@ fun AppRoot() {
     ) { inner ->
         val modifier = Modifier.padding(inner)
         when (val s = screen) {
-            Screen.Today -> TodayScreen(modifier)
+            Screen.Today -> TodayScreen(
+                onAdd = { screen = Screen.AddExercise },
+                onOpen = { screen = Screen.ExerciseDetail(it) },
+                modifier = modifier,
+            )
             Screen.Routines -> RoutinesScreen(
                 onEdit = { screen = Screen.RoutineEdit(it) },
                 onAi = { screen = Screen.AiRoutine },
@@ -79,6 +88,8 @@ fun AppRoot() {
             Screen.Profile -> ProfileScreen(modifier)
             is Screen.RoutineEdit -> RoutineEditScreen(s.id, onBack = { goBack() }, modifier = modifier)
             Screen.AiRoutine -> AiRoutineScreen(onBack = { goBack() }, onSaved = { screen = Screen.Routines }, modifier = modifier)
+            Screen.AddExercise -> AddExerciseScreen(onBack = { goBack() }, onAdded = { screen = Screen.Today }, modifier = modifier)
+            is Screen.ExerciseDetail -> ExerciseDetailScreen(s.logId, onBack = { goBack() }, modifier = modifier)
         }
     }
 }
